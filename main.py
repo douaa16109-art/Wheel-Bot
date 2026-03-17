@@ -4,10 +4,10 @@ import time
 from flask import Flask
 from threading import Thread
 
-# سيرفر بسيط لإرضاء Render
+# سيرفر لإبقاء البوت نشطاً
 app = Flask('')
 @app.route('/')
-def home(): return "البوت نشط!"
+def home(): return "البوت في الخدمة"
 def run(): app.run(host='0.0.0.0', port=8080)
 
 API_TOKEN = '8666840880:AAGNqOZEpz_mlgC_ME9H_GsbJEywoi6pnyU'
@@ -15,35 +15,43 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    bot.reply_to(message, "🎡 أهلاً بكم في عجلة الحظ السعيدة! ✨\n\nأرسلوا الأسماء وبينهما فاصلة، ثم أتبعوها بكلمة 'قرعة'.\nمثال: أحمد، سارة، ليلى قرعة")
+    bot.reply_to(message, "🎡 أهلاً بك. أنا جاهز لإجراء القرعة.\nأرسل الأسماء مفصولة بفاصلة ثم كلمة 'قرعة'.")
 
 @bot.message_handler(func=lambda message: "قرعة" in message.text)
 def spin_wheel(message):
+    # تنظيف النص ومعالجة الفراغات والفاصلة العربية والإنجليزية
     raw_text = message.text.replace("قرعة", "").strip()
+    # تقسيم الأسماء وتنظيف الفراغات حول كل اسم
     names = [n.strip() for n in raw_text.replace("،", ",").split(",") if n.strip()]
     
     if len(names) < 2:
-        bot.reply_to(message, "🎡 أوه! أحتاج لاسمين على الأقل لتدور العجلة!")
+        bot.reply_to(message, "يرجى إدخال اسمين على الأقل لإجراء القرعة.")
         return
 
-    # إرسال صورة متحركة لعجلة تدور (رابط مباشر)
-    wheel_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJic2R6ZzRyc2R6ZzRyc2R6ZzRyc2R6ZzRyc2R6ZzRyc2R6ZzR5JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l3vR6pE7p7p7p7p7p7/giphy.gif"
-    msg = bot.send_animation(message.chat.id, wheel_gif, caption="🌀 العجلة تدور الآن... ترقبوا الحظ!")
+    # إرسال الإيموجي المتحرك للعجلة (🎰 أو 🎲 أو 🎯)
+    # تليجرام يستخدم send_dice لإرسال الإيموجيات المتحركة التفاعلية
+    try:
+        # الإيموجي 🎰 يظهر عجلة حظ تدور في تليجرام
+        # يمكنك تجربة 🎲 (نرد) أو 🎯 (هدف) بدلاً منها
+        msg = bot.send_dice(message.chat.id, emoji='🎰')
+    except:
+        # إذا لم يدعم تليجرام الإيموجي، نستخدم الرمز العادي
+        msg = bot.send_message(message.chat.id, "جاري سحب الاسم... 🌀")
 
-    time.sleep(4) # وقت دوران العجلة
+    # ننتظر قليلاً حتى تكتمل حركة الإيموجي (3-4 ثوانٍ)
+    time.sleep(4)
     
     winner = random.choice(names)
     
-    # مسح رسالة العجلة وإرسال الفائز
-    bot.delete_message(message.chat.id, msg.message_id)
-    
     final_msg = (
-        f"🎊🎉 **مباااااارك الفوز!** 🎉🎊\n\n"
-        f"🎡 العجلة اختارت الصديق(ة):\n"
-        f"✨💎 **【 {winner} 】** 💎✨\n\n"
-        f"🎈🧸 حظاً أوفر للبقية في المرة القادمة!"
+        f"✨ **تمت القرعة بنجاح** ✨\n\n"
+        f"وقع الاختيار على:\n"
+        f"👑 【 **{winner}** 】\n\n"
+        f"حظاً موفقاً للجميع في المرات القادمة. 🎈"
     )
-    bot.send_message(message.chat.id, final_msg, parse_mode="Markdown")
+    
+    # نرد على رسالة الإيموجي بالنتيجة
+    bot.reply_to(msg, final_msg, parse_mode="Markdown")
 
 def start_bot():
     Thread(target=run).start()
