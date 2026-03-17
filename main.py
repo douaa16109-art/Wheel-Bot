@@ -15,30 +15,30 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    bot.reply_to(message, "🎡 أهلاً بك. أنا جاهز لإجراء القرعة.\nأرسل الأسماء مفصولة بفاصلة ثم كلمة 'قرعة'.")
+    # الرد يكون في نفس المجموعة التي أرسل منها الأمر
+    bot.reply_to(message, "🎡 أهلاً بك. أنا جاهز لإجراء القرعة في هذه المجموعة.\nأرسل الأسماء مفصولة بفاصلة ثم كلمة 'قرعة'.")
 
 @bot.message_handler(func=lambda message: "قرعة" in message.text)
 def spin_wheel(message):
+    # استخدام chat.id يضمن أن القرعة تخص هذه المجموعة فقط
+    chat_id = message.chat.id
+    
     # تنظيف النص ومعالجة الفراغات والفاصلة العربية والإنجليزية
     raw_text = message.text.replace("قرعة", "").strip()
-    # تقسيم الأسماء وتنظيف الفراغات حول كل اسم
     names = [n.strip() for n in raw_text.replace("،", ",").split(",") if n.strip()]
     
     if len(names) < 2:
-        bot.reply_to(message, "يرجى إدخال اسمين على الأقل لإجراء القرعة.")
+        bot.reply_to(message, "يرجى إدخال اسمين على الأقل لإجراء القرعة هنا.")
         return
 
-    # إرسال الإيموجي المتحرك للعجلة (🎰 أو 🎲 أو 🎯)
-    # تليجرام يستخدم send_dice لإرسال الإيموجيات المتحركة التفاعلية
     try:
-        # الإيموجي 🎰 يظهر عجلة حظ تدور في تليجرام
-        # يمكنك تجربة 🎲 (نرد) أو 🎯 (هدف) بدلاً منها
-        msg = bot.send_dice(message.chat.id, emoji='🎰')
+        # إرسال إيموجي العجلة (🎰) الخاص بتليجرام
+        # تليجرام سيعرض حركة دوران مختلفة لكل مجموعة بشكل مستقل
+        msg = bot.send_dice(chat_id, emoji='🎰')
     except:
-        # إذا لم يدعم تليجرام الإيموجي، نستخدم الرمز العادي
-        msg = bot.send_message(message.chat.id, "جاري سحب الاسم... 🌀")
+        msg = bot.send_message(chat_id, "جاري سحب الاسم... 🌀")
 
-    # ننتظر قليلاً حتى تكتمل حركة الإيموجي (3-4 ثوانٍ)
+    # انتظار حركة العجلة
     time.sleep(4)
     
     winner = random.choice(names)
@@ -47,10 +47,10 @@ def spin_wheel(message):
         f"✨ **تمت القرعة بنجاح** ✨\n\n"
         f"وقع الاختيار على:\n"
         f"👑 【 **{winner}** 】\n\n"
-        f"حظاً موفقاً للجميع في المرات القادمة. 🎈"
+        f"حظاً موفقاً للبقية. 🎈"
     )
     
-    # نرد على رسالة الإيموجي بالنتيجة
+    # الرد على رسالة العجلة داخل المجموعة نفسها
     bot.reply_to(msg, final_msg, parse_mode="Markdown")
 
 def start_bot():
