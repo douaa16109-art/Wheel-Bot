@@ -4,7 +4,7 @@ import time
 from flask import Flask
 from threading import Thread
 
-# سيرفر لإبقاء البوت نشطاً
+# سيرفر لإبقاء البوت متصلاً
 app = Flask('')
 @app.route('/')
 def home(): return "البوت في الخدمة"
@@ -15,12 +15,10 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    # الرد يكون في نفس المجموعة التي أرسل منها الأمر
-    bot.reply_to(message, "🎡 أهلاً بك. أنا جاهز لإجراء القرعة في هذه المجموعة.\nأرسل الأسماء مفصولة بفاصلة ثم كلمة 'قرعة'.")
+    bot.reply_to(message, "🎡 أهلاً بك! أنا جاهز لإجراء القرعة في هذه المجموعة.\nأرسل الأسماء وبينهما فاصلة، ثم أتبعوها بكلمة 'قرعة'.\nمثال: أحمد، سارة، ليلى قرعة")
 
 @bot.message_handler(func=lambda message: "قرعة" in message.text)
 def spin_wheel(message):
-    # استخدام chat.id يضمن أن القرعة تخص هذه المجموعة فقط
     chat_id = message.chat.id
     
     # تنظيف النص ومعالجة الفراغات والفاصلة العربية والإنجليزية
@@ -28,12 +26,11 @@ def spin_wheel(message):
     names = [n.strip() for n in raw_text.replace("،", ",").split(",") if n.strip()]
     
     if len(names) < 2:
-        bot.reply_to(message, "يرجى إدخال اسمين على الأقل لإجراء القرعة هنا.")
+        bot.reply_to(message, "🎡 أوه! أحتاج لاسمين على الأقل لتدور العجلة!")
         return
 
     try:
         # إرسال إيموجي العجلة (🎰) الخاص بتليجرام
-        # تليجرام سيعرض حركة دوران مختلفة لكل مجموعة بشكل مستقل
         msg = bot.send_dice(chat_id, emoji='🎰')
     except:
         msg = bot.send_message(chat_id, "جاري سحب الاسم... 🌀")
@@ -43,14 +40,17 @@ def spin_wheel(message):
     
     winner = random.choice(names)
     
+    # رسالة الفائز مع إيموجي الاحتفال (🎉) في البداية
+    # تليجرام سيعرض القصاصات الورقية (Confetti) عند عرض الإيموجي في بداية الرسالة
     final_msg = (
-        f"✨ **تمت القرعة بنجاح** ✨\n\n"
-        f"وقع الاختيار على:\n"
-        f"👑 【 **{winner}** 】\n\n"
-        f"حظاً موفقاً للبقية. 🎈"
+        f"🎉 **مبرووووووك الفوز!** 🎉\n\n"
+        f"🎡 وقع الاختيار على:\n"
+        f"👑💎 【 **{winner}** 】 💎👑\n\n"
+        f"حظاً موفقاً للبقية. 🎈🧸"
     )
     
-    # الرد على رسالة العجلة داخل المجموعة نفسها
+    # الرد على رسالة العجلة النتيجة
+    # تليجرام سيعرض القصاصات الورقية (Confetti) تلقائياً عند عرض الرسالة
     bot.reply_to(msg, final_msg, parse_mode="Markdown")
 
 def start_bot():
