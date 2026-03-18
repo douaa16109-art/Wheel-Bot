@@ -4,6 +4,7 @@ import time
 from flask import Flask
 from threading import Thread
 
+# سيرفر لإبقاء البوت نشطاً
 app = Flask('')
 @app.route('/')
 def home(): return "البوت نشط"
@@ -14,7 +15,7 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def welcome(message):
-    bot.reply_to(message, "🎡 أهلاً بكم في عجلة القرعة! أرسلوا الأسماء وبينهما فاصلة ثم كلمة 'قرعة'. 🧸🎨")
+    bot.reply_to(message, "🎡 أهلاً بكم! أنا جاهز لإجراء القرعة.\nأرسلوا الأسماء وبينهما فاصلة، ثم كلمة 'قرعة'. 🧸⚽")
 
 @bot.message_handler(func=lambda message: "قرعة" in message.text)
 def spin_wheel(message):
@@ -24,11 +25,11 @@ def spin_wheel(message):
     names = [n.strip() for n in raw_text.replace("،", ",").split(",") if n.strip()]
     
     if len(names) < 2:
-        bot.reply_to(message, "أحتاج لاسمين على الأقل للبدء! ⚽")
+        bot.reply_to(message, "أحتاج لاسمين على الأقل للبدء! 🎨")
         return
 
     try:
-        # 1. إرسال عجلة الحظ المتحركة
+        # 1. إرسال عجلة الحظ
         msg = bot.send_dice(chat_id, emoji='🎰')
     except:
         msg = bot.send_message(chat_id, "جاري تدوير العجلة... 🌀")
@@ -37,17 +38,25 @@ def spin_wheel(message):
     
     winner = random.choice(names)
     
-    # 2. إرسال إيموجي منفرد لتفعيل "صوت الاحتفال وقصاصات الشاشة"
-    # ملاحظة: يجب أن يكون الإيموجي وحيداً لتفعيل التأثير
-    bot.send_message(chat_id, "🎉") 
+    # 2. حذف رسالة العجلة لإفساح المجال للنتيجة
+    try: bot.delete_message(chat_id, msg.message_id)
+    except: pass
     
-    # 3. إرسال اسم الفائز بتنسيق مبهج للأطفال
+    # 3. إرسال اسم الفائز
     final_msg = (
         f"🎊 **الفائز الرائع هو** 🎊\n\n"
         f"👑✨  【 **{winner}** 】  ✨👑\n\n"
         f"مبارك لك الفوز! 🎈🧸🎨"
     )
-    bot.send_message(chat_id, final_msg, parse_mode="Markdown")
+    sent_msg = bot.send_message(chat_id, final_msg, parse_mode="Markdown")
+    
+    # 4. إضافة "Reaction" (تفاعل) القصاصات على الرسالة فوراً
+    # هذا ما يجعل القصاصات "تندفع" من الرسالة للخارج كما وصفتِ تماماً
+    try:
+        bot.set_message_reaction(chat_id, sent_msg.message_id, [telebot.types.ReactionTypeEmoji("🎉")], is_big=True)
+    except:
+        # في حال كانت النسخة قديمة، يرسل إيموجي منفرد كبديل
+        bot.send_message(chat_id, "🎉")
 
 def start_bot():
     Thread(target=run).start()
